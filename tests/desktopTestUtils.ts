@@ -1,5 +1,5 @@
 import { expect, Page, test } from "@playwright/test";
-
+import { desktopUrl } from "./helpers";
 import {
   SAMPLE_INTERACTION,
   SAMPLE_PAYLOAD,
@@ -9,7 +9,8 @@ import {
 
 export async function setupAndAcceptChat(
   page: Page,
-  payload: TestRunPayload = SAMPLE_PAYLOAD
+  payload: TestRunPayload = SAMPLE_PAYLOAD,
+  version: "v1" | "v2" = "v1"
 ) {
   const { runId } = await createTestRun(page.request, payload);
   const desktopBaseUrl = test.info().project.use.baseURL;
@@ -18,7 +19,7 @@ export async function setupAndAcceptChat(
     throw new Error("Project baseURL is not configured for desktop navigation");
   }
 
-  await page.goto(`${desktopBaseUrl}/${runId}`);
+  await page.goto(desktopUrl(runId, version));
 
   await expect(
     page.locator('[data-testid="agent-status-select"]')
