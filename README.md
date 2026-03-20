@@ -17,8 +17,17 @@ npx playwright install
 ## Running Tests
 
 ```bash
-# Run all tests (headless)
+# Run all configured versions (headless)
 npm test
+
+# Run only v1
+npm run test:v1
+
+# Run only v2
+npm run test:v2
+
+# Run all configured versions explicitly
+npm run test:all
 
 # Run with visible browser
 npm run test:headed
@@ -34,7 +43,13 @@ npm run test:report
 
 | Variable   | Default                                                | Description          |
 | ---------- | ------------------------------------------------------ | -------------------- |
-| `BASE_URL` | `https://takehome-desktop.d.tekvisionflow.com`         | Backend/frontend URL |
+| `API_BASE_URL` | `https://takehome-desktop.d.tekvisionflow.com`     | Backend URL and project base for desktop version routing |
+
+## Version Strategy
+
+- `desktop-v1` runs shared coverage plus v1-only bug assertions against `/desktop/{runId}`
+- `desktop-v2` runs shared coverage plus v2-only verification against `/desktopv2/{runId}`
+- Version-specific bug coverage is split into separate specs so reports and failures are isolated by version
 
 ## Test Coverage
 

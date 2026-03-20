@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
-const BASE_URL =
-  process.env.BASE_URL || "https://takehome-desktop.d.tekvisionflow.com";
+const API_BASE_URL =
+  process.env.API_BASE_URL || "https://takehome-desktop.d.tekvisionflow.com";
 
 export default defineConfig({
   testDir: "./tests",
@@ -11,7 +11,6 @@ export default defineConfig({
   retries: 0,
   reporter: [["html", { open: "never" }], ["list"]],
   use: {
-    baseURL: BASE_URL,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     actionTimeout: 10_000,
@@ -19,7 +18,13 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-v1",
-      use: { baseURL: BASE_URL },
+      testMatch: ["**/*.shared.spec.ts", "**/*.v1.spec.ts"],
+      use: { baseURL: `${API_BASE_URL}/desktop` },
+    },
+    {
+      name: "desktop-v2",
+      testMatch: ["**/*.shared.spec.ts", "**/*.v2.spec.ts"],
+      use: { baseURL: `${API_BASE_URL}/desktopv2` },
     },
   ],
 });

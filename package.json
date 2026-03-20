@@ -4,6 +4,9 @@
   "description": "UI automation tests for mock agent desktop application",
   "scripts": {
     "test": "npx playwright test",
+    "test:all": "npx playwright test",
+    "test:v1": "npx playwright test --project=desktop-v1",
+    "test:v2": "npx playwright test --project=desktop-v2",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --debug",
     "test:report": "npx playwright show-report"
