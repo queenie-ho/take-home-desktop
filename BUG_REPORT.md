@@ -27,6 +27,13 @@ The badge stops incrementing at **35 messages** even though additional messages 
 ### Verification
 
 - The same test run opened on `/desktopv2/{runId}` correctly shows the badge incrementing past 35, confirming the fix.
+- Additional automation now probes larger totals and shows the v1 badge remains capped even when the transcript grows well past the first threshold, while `/desktopv2` stays accurate for larger seeded transcripts.
+
+### Investigation Notes
+
+- The failure pattern points to a hard-coded client-side cap or page-size-derived counter in `/desktop`, not to missing transcript data from the backend.
+- This is an inference from black-box behavior: messages continue rendering after the badge stops, and `/desktopv2` on the same backend data does not show the cap.
+- The repository does not contain the application source for `/desktop`, so the exact root cause cannot be proven here; the automation now narrows the fault to the v1 client implementation.
 
 ---
 

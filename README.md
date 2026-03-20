@@ -4,7 +4,7 @@ Playwright-based UI automation for the Mock Agent Desktop application at `https:
 
 ## Prerequisites
 
-- Node.js 18+
+- Node.js 20.x, 22.x, or 24.x
 - npm
 
 ## Setup
@@ -60,6 +60,10 @@ npm run test:report
 - Submitted transcript messages (sender, text, timestamp) appear after acceptance
 - Message count badge matches the number of rendered messages
 - Chat input and send button are present
+- Long messages and special characters render correctly
+
+### 5a. Transcript Validation Edge Cases
+- Empty transcripts are rejected by the API with a validation error
 
 ### 6. Live Chat — Send & Echo
 - Agent can type and send a message; it appears in the transcript as "Agent"
@@ -74,6 +78,8 @@ npm run test:report
 ### 8. Bug Detection — Message Count Badge
 - Confirms the badge stops incrementing after 35 messages on `/desktop` (v1)
 - Verifies the fix on `/desktopv2` where the badge correctly increments past 35
+- Probes larger totals to confirm the v1 cap persists beyond the first threshold
+- Verifies `/desktopv2` stays accurate with large seeded transcripts (70 to 100 messages)
 
 ## Bug Report
 

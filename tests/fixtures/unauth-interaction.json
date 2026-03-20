@@ -1,0 +1,9 @@
+{
+  "interactionId": "CHAT-20001",
+  "channel": "Chat",
+  "authenticationStatus": "Not Authenticated",
+  "customerAccountNumber": "",
+  "journeyName": "General Inquiry",
+  "queueName": "General Tier 1",
+  "agentDesktopStatus": "Connected"
+}

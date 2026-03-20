@@ -1,0 +1,27 @@
+[
+  {
+    "sender": "Customer",
+    "timestamp": "14:00:00",
+    "message": "Can you confirm whether my latest payment was applied correctly?"
+  },
+  {
+    "sender": "Bot",
+    "timestamp": "14:00:42",
+    "message": "Let me review the payment details shown in the desktop."
+  },
+  {
+    "sender": "System",
+    "timestamp": "14:00:50",
+    "message": "System note appended to the active workspace."
+  },
+  {
+    "sender": "Customer",
+    "timestamp": "14:02:15",
+    "message": "Can you check whether my service request was completed?"
+  },
+  {
+    "sender": "Bot",
+    "timestamp": "14:03:00",
+    "message": "I will review the recent notes and transactions for you."
+  }
+]

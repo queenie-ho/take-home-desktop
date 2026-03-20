@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import * as path from "node:path";
+
 import { APIRequestContext } from "@playwright/test";
 
 const BASE_URL =
@@ -31,11 +34,51 @@ export interface TestRunResponse {
   desktopUrl?: string;
 }
 
+interface FixtureInteractionInfo
+  extends Omit<InteractionInfo, "startTime"> {}
+
 /**
  * Sleep helper.
  */
 export function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+const FIXTURES_DIR = path.join(__dirname, "fixtures");
+const MAX_TEST_RUN_ATTEMPTS = 5;
+const INITIAL_BACKOFF_MS = 1_000;
+
+function loadJsonFixture<T>(fileName: string): T {
+  const fixturePath = path.join(FIXTURES_DIR, fileName);
+  return JSON.parse(readFileSync(fixturePath, "utf-8")) as T;
+}
+
+function buildInteraction(
+  fixture: FixtureInteractionInfo,
+  overrides: Partial<InteractionInfo> = {}
+): InteractionInfo {
+  return {
+    ...fixture,
+    startTime: new Date().toISOString(),
+    ...overrides,
+  };
+}
+
+function getRetryDelayMs(
+  response: Awaited<ReturnType<APIRequestContext["post"]>>,
+  attempt: number
+): number {
+  const retryAfterHeader = response.headers()["retry-after"];
+  const retryAfterSeconds = retryAfterHeader
+    ? Number.parseInt(retryAfterHeader, 10)
+    : Number.NaN;
+  const exponentialDelay = INITIAL_BACKOFF_MS * 2 ** attempt;
+
+  if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
+    return Math.max(exponentialDelay, retryAfterSeconds * 1_000);
+  }
+
+  return exponentialDelay;
 }
 
 /**
@@ -46,14 +89,19 @@ export async function createTestRun(
   request: APIRequestContext,
   payload: TestRunPayload
 ): Promise<TestRunResponse> {
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < MAX_TEST_RUN_ATTEMPTS; attempt++) {
     const response = await request.post(`${BASE_URL}/api/testrun`, {
       data: payload,
       headers: { "Content-Type": "application/json" },
     });
 
     if (response.status() === 429) {
-      await sleep(3000 * (attempt + 1));
+      const body = await response.text();
+      const delayMs = getRetryDelayMs(response, attempt);
+      console.warn(
+        `createTestRun received 429 from server on attempt ${attempt + 1}/${MAX_TEST_RUN_ATTEMPTS}; retrying in ${delayMs}ms. Response body: ${body || "<empty>"}`
+      );
+      await sleep(delayMs);
       continue;
     }
 
@@ -66,7 +114,9 @@ export async function createTestRun(
 
     return response.json();
   }
-  throw new Error("Failed to create test run after 5 attempts (rate limited)");
+  throw new Error(
+    `Failed to create test run after ${MAX_TEST_RUN_ATTEMPTS} attempts because the server kept returning HTTP 429`
+  );
 }
 
 /**
@@ -79,76 +129,28 @@ export function desktopUrl(runId: string, version: "v1" | "v2" = "v1"): string {
 
 // ─── Sample Test Data ───────────────────────────────────────────────────────
 
-export const SAMPLE_INTERACTION: InteractionInfo = {
-  interactionId: "CHAT-10001",
-  channel: "Chat",
-  authenticationStatus: "Authenticated",
-  customerAccountNumber: "10012",
-  journeyName: "Billing Support",
-  queueName: "Billing Tier 1",
-  agentDesktopStatus: "Connected",
-  startTime: new Date().toISOString(),
-};
+const SAMPLE_INTERACTION_FIXTURE =
+  loadJsonFixture<FixtureInteractionInfo>("sample-interaction.json");
+const UNAUTH_INTERACTION_FIXTURE =
+  loadJsonFixture<FixtureInteractionInfo>("unauth-interaction.json");
 
-export const SAMPLE_TRANSCRIPT: ChatMessage[] = [
-  {
-    sender: "Customer",
-    timestamp: "14:00:00",
-    message: "Can you confirm whether my latest payment was applied correctly?",
-  },
-  {
-    sender: "Bot",
-    timestamp: "14:00:42",
-    message: "Let me review the payment details shown in the desktop.",
-  },
-  {
-    sender: "System",
-    timestamp: "14:00:50",
-    message: "System note appended to the active workspace.",
-  },
-  {
-    sender: "Customer",
-    timestamp: "14:02:15",
-    message: "Can you check whether my service request was completed?",
-  },
-  {
-    sender: "Bot",
-    timestamp: "14:03:00",
-    message: "I will review the recent notes and transactions for you.",
-  },
-];
+export const SAMPLE_TRANSCRIPT =
+  loadJsonFixture<ChatMessage[]>("sample-transcript.json");
+export const UNAUTH_TRANSCRIPT =
+  loadJsonFixture<ChatMessage[]>("unauth-transcript.json");
+
+export const SAMPLE_INTERACTION = buildInteraction(SAMPLE_INTERACTION_FIXTURE);
 
 export const SAMPLE_PAYLOAD: TestRunPayload = {
-  interactionInformation: SAMPLE_INTERACTION,
+  interactionInformation: buildInteraction(SAMPLE_INTERACTION_FIXTURE),
   chatTranscript: SAMPLE_TRANSCRIPT,
 };
 
-// Unauthenticated scenario
-export const UNAUTH_INTERACTION: InteractionInfo = {
-  interactionId: "CHAT-20001",
-  channel: "Chat",
-  authenticationStatus: "Not Authenticated",
-  customerAccountNumber: "",
-  journeyName: "General Inquiry",
-  queueName: "General Tier 1",
-  agentDesktopStatus: "Connected",
-  startTime: new Date().toISOString(),
-};
+export const UNAUTH_INTERACTION = buildInteraction(UNAUTH_INTERACTION_FIXTURE);
 
 export const UNAUTH_PAYLOAD: TestRunPayload = {
-  interactionInformation: UNAUTH_INTERACTION,
-  chatTranscript: [
-    {
-      sender: "Customer",
-      timestamp: "14:00:00",
-      message: "I have a question about your services.",
-    },
-    {
-      sender: "Bot",
-      timestamp: "14:00:30",
-      message: "I can help with general inquiries.",
-    },
-  ],
+  interactionInformation: buildInteraction(UNAUTH_INTERACTION_FIXTURE),
+  chatTranscript: UNAUTH_TRANSCRIPT,
 };
 
 // Large transcript for badge bug testing (40+ messages to exceed 35 threshold)

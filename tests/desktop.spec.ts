@@ -52,6 +52,29 @@ async function setupAndAcceptChat(
   return runId;
 }
 
+function buildPayloadWithTranscript(
+  chatTranscript: TestRunPayload["chatTranscript"],
+  overrides: Partial<TestRunPayload["interactionInformation"]> = {}
+): TestRunPayload {
+  return {
+    interactionInformation: {
+      ...SAMPLE_INTERACTION,
+      interactionId: `CHAT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      startTime: new Date().toISOString(),
+      ...overrides,
+    },
+    chatTranscript,
+  };
+}
+
+function messageBadge(page: Page) {
+  return page.locator(".panel-badge").first();
+}
+
+async function expectMessageBadgeCount(page: Page, expectedCount: number) {
+  await expect(messageBadge(page)).toContainText(`${expectedCount} messages`);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // TEST SUITE 1: API — Test Run Creation
 // ═══════════════════════════════════════════════════════════════════════════
@@ -74,6 +97,20 @@ test.describe("API: Test Run Creation", () => {
     const res2 = await createTestRun(request, UNAUTH_PAYLOAD);
 
     expect(res1.runId).not.toBe(res2.runId);
+  });
+
+  test("POST /api/testrun rejects an empty transcript payload", async ({
+    request,
+  }) => {
+    const response = await request.post(`${BASE_URL}/api/testrun`, {
+      data: buildPayloadWithTranscript([]),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "VALIDATION_ERROR",
+    });
   });
 });
 
@@ -300,10 +337,7 @@ test.describe("Desktop: Chat Transcript", () => {
   }) => {
     await setupAndAcceptChat(page);
 
-    const badge = page.locator(".panel-badge").first();
-    await expect(badge).toContainText(
-      `${SAMPLE_TRANSCRIPT.length} messages`
-    );
+    await expectMessageBadgeCount(page, SAMPLE_TRANSCRIPT.length);
   });
 
   test("chat input and send button are present after acceptance", async ({
@@ -318,6 +352,47 @@ test.describe("Desktop: Chat Transcript", () => {
       page.locator('[data-testid="agent-chat-send"]')
     ).toBeVisible();
   });
+
+  test("renders long transcript messages without truncating the seeded content", async ({
+    page,
+  }) => {
+    const longMessage = `LONG-${"x".repeat(2_048)}-END`;
+    const payload = buildPayloadWithTranscript([
+      {
+        sender: "Customer",
+        timestamp: "14:10:00",
+        message: longMessage,
+      },
+    ]);
+
+    await setupAndAcceptChat(page, payload);
+
+    await expect(page.locator('[data-testid="transcript-text-0"]')).toHaveText(
+      longMessage
+    );
+    await expectMessageBadgeCount(page, 1);
+  });
+
+  test("renders transcript messages with special characters", async ({
+    page,
+  }) => {
+    const specialMessage =
+      "Symbols <> [] {} ~!@#$%^&*() and accents cafe resume -- plus JSON {\"ok\":true}";
+    const payload = buildPayloadWithTranscript([
+      {
+        sender: "Customer",
+        timestamp: "14:11:00",
+        message: specialMessage,
+      },
+    ]);
+
+    await setupAndAcceptChat(page, payload);
+
+    await expect(page.locator('[data-testid="transcript-text-0"]')).toHaveText(
+      specialMessage
+    );
+  });
+
 });
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -371,7 +446,6 @@ test.describe("Desktop: Live Chat", () => {
   }) => {
     await setupAndAcceptChat(page);
 
-    const badge = page.locator(".panel-badge").first();
     const initialCount = SAMPLE_TRANSCRIPT.length;
 
     await page
@@ -387,7 +461,7 @@ test.describe("Desktop: Live Chat", () => {
     ).toBeVisible({ timeout: 10_000 });
 
     // Badge should show updated count (initial + agent + echo)
-    await expect(badge).toContainText(`${initialCount + 2} messages`);
+    await expectMessageBadgeCount(page, initialCount + 2);
   });
 
   test("send button is disabled when input is empty", async ({ page }) => {
@@ -442,10 +516,13 @@ test.describe("Desktop: Unauthenticated Flow", () => {
 test.describe("BUG: Message Count Badge Cap at 35", () => {
   const largeTranscript = buildLargeTranscript(30);
 
-  async function sendUntilPast35(page: Page, startCount: number) {
-    const badge = page.locator(".panel-badge").first();
+  async function sendUntilMessageTarget(
+    page: Page,
+    startCount: number,
+    targetTotal: number
+  ) {
     let currentTotal = startCount;
-    while (currentTotal < 40) {
+    while (currentTotal < targetTotal) {
       await page
         .locator('[data-testid="agent-chat-input"]')
         .fill(`Agent msg #${currentTotal + 1}`);
@@ -457,7 +534,7 @@ test.describe("BUG: Message Count Badge Cap at 35", () => {
     const actualMessages = await page
       .locator('[data-testid^="transcript-message-"]')
       .count();
-    const badgeText = await badge.textContent();
+    const badgeText = await messageBadge(page).textContent();
     const badgeNumber = parseInt(badgeText!.match(/\d+/)?.[0] || "0", 10);
 
     return { actualMessages, badgeNumber };
@@ -475,9 +552,10 @@ test.describe("BUG: Message Count Badge Cap at 35", () => {
     };
 
     await setupAndAcceptChat(page, payload, "v1");
-    const { actualMessages, badgeNumber } = await sendUntilPast35(
+    const { actualMessages, badgeNumber } = await sendUntilMessageTarget(
       page,
-      largeTranscript.length
+      largeTranscript.length,
+      40
     );
 
     console.log(
@@ -501,9 +579,10 @@ test.describe("BUG: Message Count Badge Cap at 35", () => {
     };
 
     await setupAndAcceptChat(page, payload, "v2");
-    const { actualMessages, badgeNumber } = await sendUntilPast35(
+    const { actualMessages, badgeNumber } = await sendUntilMessageTarget(
       page,
-      largeTranscript.length
+      largeTranscript.length,
+      40
     );
 
     console.log(
@@ -512,5 +591,35 @@ test.describe("BUG: Message Count Badge Cap at 35", () => {
 
     // On v2, badge should match actual count
     expect(badgeNumber).toBe(actualMessages);
+  });
+
+  test("v1 badge still caps even when the transcript grows far beyond the first threshold", async ({
+    page,
+  }) => {
+    const payload = buildPayloadWithTranscript(buildLargeTranscript(34), {
+      interactionId: "CHAT-BUG-70",
+    });
+
+    await setupAndAcceptChat(page, payload, "v1");
+    const { actualMessages, badgeNumber } = await sendUntilMessageTarget(
+      page,
+      34,
+      70
+    );
+
+    expect(actualMessages).toBeGreaterThanOrEqual(70);
+    expect(badgeNumber).toBeLessThanOrEqual(35);
+  });
+
+  test("v2 keeps the badge accurate for large seeded transcripts", async ({
+    page,
+  }) => {
+    const transcript = buildLargeTranscript(100);
+    const payload = buildPayloadWithTranscript(transcript, {
+      interactionId: "CHAT-V2-100",
+    });
+
+    await setupAndAcceptChat(page, payload, "v2");
+    await expectMessageBadgeCount(page, transcript.length);
   });
 });

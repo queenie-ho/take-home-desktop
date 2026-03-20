@@ -1,0 +1,9 @@
+{
+  "interactionId": "CHAT-10001",
+  "channel": "Chat",
+  "authenticationStatus": "Authenticated",
+  "customerAccountNumber": "10012",
+  "journeyName": "Billing Support",
+  "queueName": "Billing Tier 1",
+  "agentDesktopStatus": "Connected"
+}
