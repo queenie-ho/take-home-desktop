@@ -10,16 +10,24 @@ import {
 export async function setupAndAcceptChat(
   page: Page,
   payload: TestRunPayload = SAMPLE_PAYLOAD,
-  version: "v1" | "v2" = "v1"
+  version: "v1" | "v2"
 ) {
-  const { runId } = await createTestRun(page.request, payload);
-  const desktopBaseUrl = test.info().project.use.baseURL;
+  const result = await createTestRun(page.request, payload);
+  const projectName = test.info().project.name;
 
-  if (!desktopBaseUrl) {
-    throw new Error("Project baseURL is not configured for desktop navigation");
+  if (!projectName.includes(version)) {
+    throw new Error(
+      `Project ${projectName} does not match requested desktop version ${version}`
+    );
   }
 
-  await page.goto(desktopUrl(runId, version));
+  if (!result?.runId) {
+    throw new Error("Failed to create test run before desktop navigation");
+  }
+
+  const url = desktopUrl(result.runId, version);
+  console.log(`setupAndAcceptChat navigating to ${url}`);
+  await page.goto(url);
 
   await expect(
     page.locator('[data-testid="agent-status-select"]')
@@ -38,7 +46,7 @@ export async function setupAndAcceptChat(
     page.locator('[data-testid="transcript-message-0"]')
   ).toBeVisible({ timeout: 10_000 });
 
-  return runId;
+  return result.runId;
 }
 
 export function buildPayloadWithTranscript(

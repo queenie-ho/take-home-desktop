@@ -32,10 +32,16 @@ npm run test:all
 # Run with visible browser
 npm run test:headed
 
-# Run in debug mode (step through)
+# Run a focused v1 headed smoke test
 npm run test:debug
 
-# View HTML report after run
+# Run a focused v2 headed smoke test
+npm run test:debug:v2
+
+# Run Playwright's paused inspector mode for v1
+npm run test:pwdebug
+
+# View HTML report after run on an auto-selected local port
 npm run test:report
 ```
 

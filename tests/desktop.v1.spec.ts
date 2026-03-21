@@ -16,7 +16,7 @@ test.describe("BUG: Message Count Badge Cap at 35 (v1)", () => {
       interactionId: "CHAT-BUG-TEST",
     });
 
-    await setupAndAcceptChat(page, payload);
+    await setupAndAcceptChat(page, payload, "v1");
     const { actualMessages, badgeNumber } = await sendUntilMessageTarget(
       page,
       largeTranscript.length,
@@ -34,7 +34,7 @@ test.describe("BUG: Message Count Badge Cap at 35 (v1)", () => {
       interactionId: "CHAT-BUG-70",
     });
 
-    await setupAndAcceptChat(page, payload);
+    await setupAndAcceptChat(page, payload, "v1");
     const { actualMessages, badgeNumber } = await sendUntilMessageTarget(
       page,
       34,

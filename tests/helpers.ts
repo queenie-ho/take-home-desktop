@@ -4,7 +4,9 @@ import * as path from "node:path";
 import { APIRequestContext } from "@playwright/test";
 
 const BASE_URL =
-  process.env.BASE_URL || "https://takehome-desktop.d.tekvisionflow.com";
+  process.env.API_BASE_URL ||
+  process.env.BASE_URL ||
+  "https://takehome-desktop.d.tekvisionflow.com";
 
 export interface InteractionInfo {
   interactionId: string;
@@ -45,8 +47,8 @@ export function sleep(ms: number): Promise<void> {
 }
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
-const MAX_TEST_RUN_ATTEMPTS = 5;
-const INITIAL_BACKOFF_MS = 1_000;
+const MAX_TEST_RUN_ATTEMPTS = 8;
+const INITIAL_BACKOFF_MS = 2_000;
 
 function loadJsonFixture<T>(fileName: string): T {
   const fixturePath = path.join(FIXTURES_DIR, fileName);
@@ -90,6 +92,9 @@ export async function createTestRun(
   payload: TestRunPayload
 ): Promise<TestRunResponse> {
   for (let attempt = 0; attempt < MAX_TEST_RUN_ATTEMPTS; attempt++) {
+    console.log(
+      `createTestRun attempt ${attempt + 1}/${MAX_TEST_RUN_ATTEMPTS} for interaction ${payload.interactionInformation.interactionId}`
+    );
     const response = await request.post(`${BASE_URL}/api/testrun`, {
       data: payload,
       headers: { "Content-Type": "application/json" },
@@ -111,8 +116,9 @@ export async function createTestRun(
         `Failed to create test run: ${response.status()} - ${body}`
       );
     }
-
-    return response.json();
+    const result = (await response.json()) as TestRunResponse;
+    console.log(`createTestRun succeeded with runId ${result.runId}`);
+    return result;
   }
   throw new Error(
     `Failed to create test run after ${MAX_TEST_RUN_ATTEMPTS} attempts because the server kept returning HTTP 429`

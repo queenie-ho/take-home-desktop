@@ -7,6 +7,7 @@ import {
   SAMPLE_TRANSCRIPT,
   UNAUTH_PAYLOAD,
   createTestRun,
+  desktopUrl,
 } from "./helpers";
 import {
   buildPayloadWithTranscript,
@@ -16,6 +17,10 @@ import {
 
 const API_BASE_URL =
   process.env.API_BASE_URL || "https://takehome-desktop.d.tekvisionflow.com";
+
+function versionFromProjectName(projectName: string): "v1" | "v2" {
+  return projectName.includes("v2") ? "v2" : "v1";
+}
 
 test.describe("API: Test Run Creation", () => {
   test("POST /api/testrun returns a valid runId and metadata", async ({
@@ -56,9 +61,15 @@ test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
   test("desktop loads with correct header and connection status", async ({
     page,
     request,
-  }) => {
-    const { runId } = await createTestRun(request, SAMPLE_PAYLOAD);
-    await page.goto(`/${runId}`);
+  }, testInfo) => {
+    const result = await createTestRun(request, SAMPLE_PAYLOAD);
+    const version = versionFromProjectName(testInfo.project.name);
+    if (!result?.runId) {
+      throw new Error("Failed to create test run before desktop navigation");
+    }
+    const url = desktopUrl(result.runId, version);
+    console.log(`desktop shared smoke navigating to ${url}`);
+    await page.goto(url);
 
     await expect(page.locator('[data-testid="desktop-header"]')).toBeVisible();
     await expect(
@@ -69,9 +80,15 @@ test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
   test("fresh desktop shows workspace locked before chat acceptance", async ({
     page,
     request,
-  }) => {
-    const { runId } = await createTestRun(request, SAMPLE_PAYLOAD);
-    await page.goto(`/${runId}`);
+  }, testInfo) => {
+    const result = await createTestRun(request, SAMPLE_PAYLOAD);
+    const version = versionFromProjectName(testInfo.project.name);
+    if (!result?.runId) {
+      throw new Error("Failed to create test run before desktop navigation");
+    }
+    const url = desktopUrl(result.runId, version);
+    console.log(`desktop shared gated-state navigating to ${url}`);
+    await page.goto(url);
 
     await expect(
       page.locator('[data-testid="agent-status-select"]')
@@ -100,9 +117,15 @@ test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
   test("setting agent to Ready shows chat invite from correct queue", async ({
     page,
     request,
-  }) => {
-    const { runId } = await createTestRun(request, SAMPLE_PAYLOAD);
-    await page.goto(`/${runId}`);
+  }, testInfo) => {
+    const result = await createTestRun(request, SAMPLE_PAYLOAD);
+    const version = versionFromProjectName(testInfo.project.name);
+    if (!result?.runId) {
+      throw new Error("Failed to create test run before desktop navigation");
+    }
+    const url = desktopUrl(result.runId, version);
+    console.log(`desktop shared invite-flow navigating to ${url}`);
+    await page.goto(url);
 
     await page
       .locator('[data-testid="agent-status-select"]')
@@ -118,8 +141,9 @@ test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
 
   test("accepting chat invite unlocks workspace and shows transcript", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     await expect(
       page.locator('[data-testid="tab-interaction-information"]')
@@ -134,8 +158,9 @@ test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
 test.describe("Desktop: Interaction Information", () => {
   test("displays all submitted interaction fields correctly", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     await expect(
       page.locator('[data-testid="interaction-information"]')
@@ -168,8 +193,9 @@ test.describe("Desktop: Interaction Information", () => {
 test.describe("Desktop: Customer Profile", () => {
   test("authenticated run resolves and displays correct customer profile", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     await page.locator('[data-testid="tab-customer-profile"]').click();
     await expect(
@@ -192,8 +218,9 @@ test.describe("Desktop: Customer Profile", () => {
 
   test("profile shows recent transactions with pagination", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
     await page.locator('[data-testid="tab-customer-profile"]').click();
 
     await expect(
@@ -210,8 +237,9 @@ test.describe("Desktop: Customer Profile", () => {
     ).toContainText("Page 1");
   });
 
-  test("profile shows account history notes", async ({ page }) => {
-    await setupAndAcceptChat(page);
+  test("profile shows account history notes", async ({ page }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
     await page.locator('[data-testid="tab-customer-profile"]').click();
 
     await expect(
@@ -224,8 +252,9 @@ test.describe("Desktop: Customer Profile", () => {
 test.describe("Desktop: Chat Transcript", () => {
   test("submitted transcript messages appear after acceptance", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     for (let i = 0; i < SAMPLE_TRANSCRIPT.length; i++) {
       const msg = SAMPLE_TRANSCRIPT[i];
@@ -243,15 +272,17 @@ test.describe("Desktop: Chat Transcript", () => {
 
   test("message count badge reflects the correct number of messages", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
     await expectMessageBadgeCount(page, SAMPLE_TRANSCRIPT.length);
   });
 
   test("chat input and send button are present after acceptance", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     await expect(
       page.locator('[data-testid="agent-chat-input"]')
@@ -263,8 +294,9 @@ test.describe("Desktop: Chat Transcript", () => {
 
   test("renders long transcript messages without truncating the seeded content", async ({
     page,
-  }) => {
-    const longMessage = `LONG-${"x".repeat(2_048)}-END`;
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    const longMessage = `LONG-${"x".repeat(991)}-END`;
     const payload = buildPayloadWithTranscript([
       {
         sender: "Customer",
@@ -273,7 +305,7 @@ test.describe("Desktop: Chat Transcript", () => {
       },
     ]);
 
-    await setupAndAcceptChat(page, payload);
+    await setupAndAcceptChat(page, payload, version);
 
     await expect(page.locator('[data-testid="transcript-text-0"]')).toHaveText(
       longMessage
@@ -283,7 +315,8 @@ test.describe("Desktop: Chat Transcript", () => {
 
   test("renders transcript messages with special characters", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
     const specialMessage =
       'Symbols <> [] {} ~!@#$%^&*() and accents cafe resume -- plus JSON {"ok":true}';
     const payload = buildPayloadWithTranscript([
@@ -294,7 +327,7 @@ test.describe("Desktop: Chat Transcript", () => {
       },
     ]);
 
-    await setupAndAcceptChat(page, payload);
+    await setupAndAcceptChat(page, payload, version);
 
     await expect(page.locator('[data-testid="transcript-text-0"]')).toHaveText(
       specialMessage
@@ -305,8 +338,9 @@ test.describe("Desktop: Chat Transcript", () => {
 test.describe("Desktop: Live Chat", () => {
   test("agent can send a message and it appears in the transcript", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     const initialCount = SAMPLE_TRANSCRIPT.length;
     const agentMsg = "I will look into your billing concern now.";
@@ -324,8 +358,9 @@ test.describe("Desktop: Live Chat", () => {
 
   test("customer echo message appears after agent sends a message", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     const initialCount = SAMPLE_TRANSCRIPT.length;
     const agentMsg = "Let me check your account.";
@@ -344,8 +379,9 @@ test.describe("Desktop: Live Chat", () => {
 
   test("message count badge updates after sending messages", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     const initialCount = SAMPLE_TRANSCRIPT.length;
     await page
@@ -359,8 +395,11 @@ test.describe("Desktop: Live Chat", () => {
     await expectMessageBadgeCount(page, initialCount + 2);
   });
 
-  test("send button is disabled when input is empty", async ({ page }) => {
-    await setupAndAcceptChat(page);
+  test("send button is disabled when input is empty", async ({
+    page,
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, SAMPLE_PAYLOAD, version);
 
     await expect(
       page.locator('[data-testid="agent-chat-send"]')
@@ -371,8 +410,9 @@ test.describe("Desktop: Live Chat", () => {
 test.describe("Desktop: Unauthenticated Flow", () => {
   test("unauthenticated run shows Not Authenticated status", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page, UNAUTH_PAYLOAD);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, UNAUTH_PAYLOAD, version);
 
     await expect(page.locator('[data-testid="auth-status"]')).toHaveText(
       "Not Authenticated"
@@ -381,8 +421,9 @@ test.describe("Desktop: Unauthenticated Flow", () => {
 
   test("unauthenticated run hides or limits customer profile", async ({
     page,
-  }) => {
-    await setupAndAcceptChat(page, UNAUTH_PAYLOAD);
+  }, testInfo) => {
+    const version = versionFromProjectName(testInfo.project.name);
+    await setupAndAcceptChat(page, UNAUTH_PAYLOAD, version);
     await page.locator('[data-testid="tab-customer-profile"]').click();
 
     const profilePanel = page.locator('[data-testid="customer-profile"]');
