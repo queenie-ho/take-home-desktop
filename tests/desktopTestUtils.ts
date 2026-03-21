@@ -1,4 +1,4 @@
-import { expect, Page, test } from "@playwright/test";
+import { expect, Page } from "@playwright/test";
 import { desktopUrl } from "./helpers";
 import {
   SAMPLE_INTERACTION,
@@ -13,20 +13,12 @@ export async function setupAndAcceptChat(
   version: "v1" | "v2"
 ) {
   const result = await createTestRun(page.request, payload);
-  const projectName = test.info().project.name;
-
-  if (!projectName.includes(version)) {
-    throw new Error(
-      `Project ${projectName} does not match requested desktop version ${version}`
-    );
-  }
 
   if (!result?.runId) {
     throw new Error("Failed to create test run before desktop navigation");
   }
 
   const url = desktopUrl(result.runId, version);
-  console.log(`setupAndAcceptChat navigating to ${url}`);
   await page.goto(url);
 
   await expect(

@@ -47,8 +47,9 @@ export function sleep(ms: number): Promise<void> {
 }
 
 const FIXTURES_DIR = path.join(__dirname, "fixtures");
-const MAX_TEST_RUN_ATTEMPTS = 8;
-const INITIAL_BACKOFF_MS = 2_000;
+const MAX_TEST_RUN_ATTEMPTS = 5;
+const INITIAL_BACKOFF_MS = 1_000;
+const MAX_BACKOFF_MS = 10_000;
 
 function loadJsonFixture<T>(fileName: string): T {
   const fixturePath = path.join(FIXTURES_DIR, fileName);
@@ -74,13 +75,12 @@ function getRetryDelayMs(
   const retryAfterSeconds = retryAfterHeader
     ? Number.parseInt(retryAfterHeader, 10)
     : Number.NaN;
-  const exponentialDelay = INITIAL_BACKOFF_MS * 2 ** attempt;
 
   if (Number.isFinite(retryAfterSeconds) && retryAfterSeconds > 0) {
-    return Math.max(exponentialDelay, retryAfterSeconds * 1_000);
+    return retryAfterSeconds * 1_000;
   }
 
-  return exponentialDelay;
+  return Math.min(INITIAL_BACKOFF_MS * 2 ** attempt, MAX_BACKOFF_MS);
 }
 
 /**
@@ -92,9 +92,6 @@ export async function createTestRun(
   payload: TestRunPayload
 ): Promise<TestRunResponse> {
   for (let attempt = 0; attempt < MAX_TEST_RUN_ATTEMPTS; attempt++) {
-    console.log(
-      `createTestRun attempt ${attempt + 1}/${MAX_TEST_RUN_ATTEMPTS} for interaction ${payload.interactionInformation.interactionId}`
-    );
     const response = await request.post(`${BASE_URL}/api/testrun`, {
       data: payload,
       headers: { "Content-Type": "application/json" },
@@ -104,7 +101,7 @@ export async function createTestRun(
       const body = await response.text();
       const delayMs = getRetryDelayMs(response, attempt);
       console.warn(
-        `createTestRun received 429 from server on attempt ${attempt + 1}/${MAX_TEST_RUN_ATTEMPTS}; retrying in ${delayMs}ms. Response body: ${body || "<empty>"}`
+        `[429 RETRY] attempt ${attempt + 1}/${MAX_TEST_RUN_ATTEMPTS} delay=${delayMs}ms body=${body || "<empty>"}`
       );
       await sleep(delayMs);
       continue;
@@ -116,12 +113,10 @@ export async function createTestRun(
         `Failed to create test run: ${response.status()} - ${body}`
       );
     }
-    const result = (await response.json()) as TestRunResponse;
-    console.log(`createTestRun succeeded with runId ${result.runId}`);
-    return result;
+    return (await response.json()) as TestRunResponse;
   }
   throw new Error(
-    `Failed to create test run after ${MAX_TEST_RUN_ATTEMPTS} attempts because the server kept returning HTTP 429`
+    `Failed to create test run after ${MAX_TEST_RUN_ATTEMPTS} attempts due to repeated 429 (rate limiting). Consider increasing backoff or reducing request frequency.`
   );
 }
 

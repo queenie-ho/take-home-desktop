@@ -12,20 +12,9 @@ export default defineConfig({
   retries: 0,
   reporter: [["html", { open: "never" }], ["list"]],
   use: {
+    baseURL: API_BASE_URL,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
     actionTimeout: 10_000,
   },
-  projects: [
-    {
-      name: "desktop-v1",
-      testMatch: ["**/*.shared.spec.ts", "**/*.v1.spec.ts"],
-      use: { baseURL: `${API_BASE_URL}/desktop` },
-    },
-    {
-      name: "desktop-v2",
-      testMatch: ["**/*.shared.spec.ts", "**/*.v2.spec.ts"],
-      use: { baseURL: `${API_BASE_URL}/desktopv2` },
-    },
-  ],
 });

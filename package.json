@@ -4,14 +4,12 @@
   "description": "UI automation tests for mock agent desktop application",
   "scripts": {
     "test": "npx playwright test",
-    "test:all": "npx playwright test",
-    "test:v1": "npx playwright test --project=desktop-v1",
-    "test:v2": "npx playwright test --project=desktop-v2",
     "test:headed": "npx playwright test --headed",
-    "test:debug": "npx playwright test --headed --project=desktop-v1 tests/desktop.shared.spec.ts --grep \"desktop loads with correct header and connection status\"",
-    "test:debug:v2": "npx playwright test --headed --project=desktop-v2 tests/desktop.shared.spec.ts --grep \"desktop loads with correct header and connection status\"",
-    "test:pwdebug": "npx playwright test --debug --project=desktop-v1 tests/desktop.shared.spec.ts --grep \"desktop loads with correct header and connection status\"",
-    "test:report": "npx playwright show-report --host 127.0.0.1 --port 0"
+    "test:debug": "npx playwright test --headed tests/desktop.spec.ts --grep \"desktop loads with correct header and connection status\"",
+    "test:pwdebug": "npx playwright test --debug tests/desktop.spec.ts --grep \"desktop loads with correct header and connection status\"",
+    "test:report": "npx playwright show-report --host 127.0.0.1 --port 0",
+    "test:v1": "npx playwright test --grep @v1",
+    "test:v2": "npx playwright test --grep @v2"
   },
   "devDependencies": {
     "@playwright/test": "^1.50.0"

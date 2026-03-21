@@ -17,28 +17,22 @@ npx playwright install
 ## Running Tests
 
 ```bash
-# Run all configured versions (headless)
+# Run all tests (headless)
 npm test
 
-# Run only v1
+# Run only the v1 bug verification
 npm run test:v1
 
-# Run only v2
+# Run only the v2 fix verification
 npm run test:v2
-
-# Run all configured versions explicitly
-npm run test:all
 
 # Run with visible browser
 npm run test:headed
 
-# Run a focused v1 headed smoke test
+# Run a fast headed smoke test for local debugging
 npm run test:debug
 
-# Run a focused v2 headed smoke test
-npm run test:debug:v2
-
-# Run Playwright's paused inspector mode for v1
+# Run Playwright's paused inspector mode
 npm run test:pwdebug
 
 # View HTML report after run on an auto-selected local port
@@ -53,9 +47,9 @@ npm run test:report
 
 ## Version Strategy
 
-- `desktop-v1` runs shared coverage plus v1-only bug assertions against `/desktop/{runId}`
-- `desktop-v2` runs shared coverage plus v2-only verification against `/desktopv2/{runId}`
-- Version-specific bug coverage is split into separate specs so reports and failures are isolated by version
+- Most coverage runs against `/desktop`
+- Suite 8 uses the same badge-check logic against both `/desktop` and `/desktopv2`
+- `npm run test:v1` demonstrates the bug, and `npm run test:v2` confirms the fix
 
 ## Test Coverage
 
