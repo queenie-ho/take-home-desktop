@@ -1,6 +1,6 @@
 # Bug Report
 
-Some initial failures, such as missing header and agent status controls, were traced to test configuration issues and are not included as product defects.
+This report summarizes confirmed product defects identified through deterministic UI automation and targeted exploratory testing of the mock desktop. Core agent workflows were exercised end to end, including API run creation, desktop launch, invite acceptance, profile rendering, transcript validation, and live chat behavior. Some initial failures, such as missing header and agent status controls, were traced to test configuration issues and are not included as product defects.
 
 ## Bug 1: Message Count Badge Stops Incrementing After 35 Messages
 
@@ -61,7 +61,7 @@ The badge stops incrementing at **35 messages** even though additional messages 
 
 ### Expected Result
 
-Messages should be displayed in chronological order based on timestamp so the conversation reads naturally.
+Messages should be displayed in chronological order based on timestamp so the conversation reads naturally, regardless of the order received from the backend.
 
 ### Actual Result
 
@@ -70,6 +70,10 @@ Messages are rendered in backend-provided order, so later timestamps can appear 
 ### Verification
 
 - A run seeded with timestamps `14:31:50`, `14:31:09`, and `14:31:20` rendered in that same order instead of being sorted chronologically.
+
+### Investigation Notes
+
+The UI appears to render messages in the order received without applying client-side sorting. In a production agent desktop, chronological ordering is typically enforced to maintain readability regardless of backend ordering.
 
 ### Impact
 

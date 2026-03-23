@@ -51,6 +51,30 @@ npm run test:report
 - Suite 8 uses the same badge-check logic against both `/desktop` and `/desktopv2`
 - `npm run test:v1` demonstrates the bug, and `npm run test:v2` confirms the fix
 
+## Test Coverage Summary
+
+The following features were tested:
+
+- Test run creation API
+- Agent status and chat invite flow
+- Interaction information display
+- Customer profile rendering
+- Chat transcript rendering
+- Live chat functionality
+- Transcript length validation
+- Bug verification on `/desktop` and `/desktopv2`
+
+## Results
+
+- Most core flows function correctly
+- Eight test suites were executed against the mock agent desktop
+- All core flows, including API run creation, agent status handling, chat invite acceptance, interaction/profile validation, transcript verification, and live chat, passed successfully
+- Two confirmed defects were identified on `/desktop`:
+  - Message count badge caps at 35 messages (fixed in `/desktopv2`)
+  - Chat transcript is rendered in non-chronological order
+
+Overall, the desktop supports the basic agent workflow, with identified issues in transcript ordering and message count accuracy.
+
 ## Test Coverage
 
 ### 1. API — Test Run Creation
@@ -100,8 +124,8 @@ npm run test:report
 
 ## Bug Report
 
+Some initial failures (e.g., missing header and agent status controls) were traced to test configuration issues and are not included as product defects. Profile and transcript correctness is validated through the desktop UI directly.
+
+During exploratory testing, additional observations were noted: transaction amount signs in the profile fixture may appear misleading in context, and long transaction descriptions may be visually truncated in the UI. These were not included as confirmed defects because they may reflect intentional backend conventions or simplified mock behavior, but they are noted for completeness.
+
 See [BUG_REPORT.md](./BUG_REPORT.md) for detailed findings.
-
-## Notes
-
-Some initial failures (e.g., missing header and agent status controls) were traced to test configuration issues and are not included as product defects.
