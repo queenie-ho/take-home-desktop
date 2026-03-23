@@ -1,5 +1,7 @@
 # Bug Report
 
+Some initial failures, such as missing header and agent status controls, were traced to test configuration issues and are not included as product defects.
+
 ## Bug 1: Message Count Badge Stops Incrementing After 35 Messages
 
 **Severity:** Medium
@@ -42,3 +44,40 @@ The badge stops incrementing at **35 messages** even though additional messages 
 | # | Bug                              | Status on `/desktop` | Status on `/desktopv2` |
 |---|----------------------------------|----------------------|------------------------|
 | 1 | Badge caps at 35 messages        | Reproducible         | Fixed                  |
+
+## Bug 2: Chat Transcript Is Rendered In Non-Chronological Order
+
+**Severity:** High
+**Component:** Chat Interaction Window — transcript ordering
+**Affected URL:** `/desktop/{runId}`
+
+### Steps to Reproduce
+
+1. Create a test run via `POST /api/testrun` using transcript messages whose timestamps are not already sorted.
+2. Open `/desktop/{runId}` in the browser.
+3. Set Agent Status to **Ready**.
+4. Click **Accept Chat** to accept the incoming invite.
+5. Observe the message order in the transcript.
+
+### Expected Result
+
+Messages should be displayed in chronological order based on timestamp so the conversation reads naturally.
+
+### Actual Result
+
+Messages are rendered in backend-provided order, so later timestamps can appear before earlier ones.
+
+### Verification
+
+- A run seeded with timestamps `14:31:50`, `14:31:09`, and `14:31:20` rendered in that same order instead of being sorted chronologically.
+
+### Impact
+
+Agents can see a confusing conversation flow and may misread the sequence of events in the customer chat.
+
+## Candidate Issue Reviewed But Not Reproduced
+
+### Preferred language not displayed in customer profile
+
+- This was checked against account `10012`.
+- The current build renders `preferred-language` as `French`, so it is not included as a confirmed defect.

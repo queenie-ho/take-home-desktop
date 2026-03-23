@@ -36,6 +36,8 @@ export interface TestRunResponse {
   desktopUrl?: string;
 }
 
+export const DEFAULT_START_TIME = "2026-03-11T10:30:00Z";
+
 interface FixtureInteractionInfo
   extends Omit<InteractionInfo, "startTime"> {}
 
@@ -62,7 +64,7 @@ function buildInteraction(
 ): InteractionInfo {
   return {
     ...fixture,
-    startTime: new Date().toISOString(),
+    startTime: DEFAULT_START_TIME,
     ...overrides,
   };
 }

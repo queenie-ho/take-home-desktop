@@ -1,6 +1,7 @@
 import { expect, Page } from "@playwright/test";
 import { desktopUrl } from "./helpers";
 import {
+  DEFAULT_START_TIME,
   SAMPLE_INTERACTION,
   SAMPLE_PAYLOAD,
   createTestRun,
@@ -49,7 +50,7 @@ export function buildPayloadWithTranscript(
     interactionInformation: {
       ...SAMPLE_INTERACTION,
       interactionId: `CHAT-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      startTime: new Date().toISOString(),
+      startTime: DEFAULT_START_TIME,
       ...overrides,
     },
     chatTranscript,

@@ -55,7 +55,9 @@ npm run test:report
 
 ### 1. API — Test Run Creation
 - `POST /api/testrun` returns a valid `runId` and metadata
+- Returned `desktopUrl` matches the created run
 - Different payloads produce unique `runId` values
+- Rejects transcript messages longer than 1000 characters
 
 ### 2. Desktop — Agent Status & Chat Invite Flow
 - Desktop loads with correct header and "Connected" status
@@ -64,12 +66,12 @@ npm run test:report
 - Accepting the invite unlocks the workspace and reveals transcript
 
 ### 3. Interaction Information Validation
-- All submitted interaction fields (ID, channel, auth status, account number, journey, queue, desktop status) render correctly
+- All submitted interaction fields (ID, channel, auth status, account number, journey, queue, desktop status, start time) render correctly
 
 ### 4. Customer Profile Validation
 - Authenticated run auto-resolves the correct customer profile (name, tier, status, language)
-- Recent transactions display with pagination
-- Account history notes are shown
+- Recent transactions display expected content and paginate correctly
+- Account history notes display expected content
 
 ### 5. Chat Transcript Validation
 - Submitted transcript messages (sender, text, timestamp) appear after acceptance
@@ -99,3 +101,7 @@ npm run test:report
 ## Bug Report
 
 See [BUG_REPORT.md](./BUG_REPORT.md) for detailed findings.
+
+## Notes
+
+Some initial failures (e.g., missing header and agent status controls) were traced to test configuration issues and are not included as product defects.

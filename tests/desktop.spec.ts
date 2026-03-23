@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  DEFAULT_START_TIME,
   EXPECTED_PROFILE_10012,
   SAMPLE_INTERACTION,
   SAMPLE_PAYLOAD,
@@ -29,6 +30,7 @@ test.describe("API: Test Run Creation", () => {
     expect(res.runId).toBeTruthy();
     expect(typeof res.runId).toBe("string");
     expect(res.createdAt).toBeTruthy();
+    expect(res.desktopUrl).toContain(res.runId);
   });
 
   test("POST /api/testrun with different payloads returns unique runIds", async ({
@@ -45,6 +47,26 @@ test.describe("API: Test Run Creation", () => {
   }) => {
     const response = await request.post(`${API_BASE_URL}/api/testrun`, {
       data: buildPayloadWithTranscript([]),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "VALIDATION_ERROR",
+    });
+  });
+
+  test("POST /api/testrun rejects a transcript message longer than 1000 characters", async ({
+    request,
+  }) => {
+    const response = await request.post(`${API_BASE_URL}/api/testrun`, {
+      data: buildPayloadWithTranscript([
+        {
+          sender: "Customer",
+          timestamp: "14:10:00",
+          message: "a".repeat(1001),
+        },
+      ]),
       headers: { "Content-Type": "application/json" },
     });
 
@@ -180,6 +202,9 @@ test.describe("Desktop: Interaction Information", () => {
     await expect(page.locator('[data-testid="desktop-status"]')).toHaveText(
       SAMPLE_INTERACTION.agentDesktopStatus
     );
+    await expect(page.locator('[data-testid="start-time"]')).toHaveText(
+      DEFAULT_START_TIME
+    );
   });
 });
 
@@ -219,13 +244,22 @@ test.describe("Desktop: Customer Profile", () => {
     ).toBeVisible();
     await expect(
       page.locator('[data-testid="transaction-row-0"]')
-    ).toBeVisible();
+    ).toHaveText("2026-03-10Payment Received+25.35");
     await expect(
       page.locator('[data-testid="recent-transactions-pagination"]')
     ).toBeVisible();
     await expect(
       page.locator('[data-testid="recent-transactions-pagination"]')
-    ).toContainText("Page 1");
+    ).toContainText("Page 1 of 3");
+
+    await page.getByRole("button", { name: "Next" }).click();
+
+    await expect(
+      page.locator('[data-testid="recent-transactions-pagination"]')
+    ).toContainText("Page 2 of 3");
+    await expect(
+      page.locator('[data-testid="transaction-row-10"]')
+    ).toHaveText("2026-02-28Loyalty Credit-18.00");
   });
 
   test("profile shows account history notes", async ({ page }) => {
@@ -235,7 +269,12 @@ test.describe("Desktop: Customer Profile", () => {
     await expect(
       page.locator('[data-testid="account-history"]')
     ).toBeVisible();
-    await expect(page.locator('[data-testid="history-note-0"]')).toBeVisible();
+    await expect(page.locator('[data-testid="history-note-0"]')).toHaveText(
+      "Profile auto-loaded from sample fixture 10012"
+    );
+    await expect(page.locator('[data-testid="history-note-2"]')).toHaveText(
+      "Preferred language on file: French"
+    );
   });
 });
 
