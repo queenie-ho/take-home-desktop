@@ -4,6 +4,7 @@
   "description": "UI automation tests for mock agent desktop application",
   "scripts": {
     "test": "npx playwright test",
+    "test:all": "npx playwright test",
     "test:headed": "npx playwright test --headed",
     "test:debug": "npx playwright test --headed tests/desktop.spec.ts --grep \"desktop loads with correct header and connection status\"",
     "test:pwdebug": "npx playwright test --debug tests/desktop.spec.ts --grep \"desktop loads with correct header and connection status\"",

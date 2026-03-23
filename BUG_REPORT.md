@@ -37,14 +37,6 @@ The badge stops incrementing at **35 messages** even though additional messages 
 - This is an inference from black-box behavior: messages continue rendering after the badge stops, and `/desktopv2` on the same backend data does not show the cap.
 - The repository does not contain the application source for `/desktop`, so the exact root cause cannot be proven here; the automation now narrows the fault to the v1 client implementation.
 
----
-
-## Summary
-
-| # | Bug                              | Status on `/desktop` | Status on `/desktopv2` |
-|---|----------------------------------|----------------------|------------------------|
-| 1 | Badge caps at 35 messages        | Reproducible         | Fixed                  |
-
 ## Bug 2: Chat Transcript Is Rendered In Non-Chronological Order
 
 **Severity:** High
@@ -79,9 +71,42 @@ The UI appears to render messages in the order received without applying client-
 
 Agents can see a confusing conversation flow and may misread the sequence of events in the customer chat.
 
+## Bug 3: API Accepts Malformed Transcript Timestamps
+
+**Severity:** Medium
+**Component:** `POST /api/testrun` validation
+**Affected URL:** `/api/testrun`
+
+### Steps to Reproduce
+
+1. Send a `POST` request to `/api/testrun`.
+2. Use an otherwise valid payload, but provide a malformed transcript timestamp such as `99:99:99`.
+
+### Expected Result
+
+The API should reject invalid transcript timestamps with a validation error.
+
+### Actual Result
+
+The API accepts the payload and returns `201 Created`.
+
+### Verification
+
+- The automated malformed-timestamp check is kept in the suite as `test.fail(...)` because the current behavior consistently reproduces the defect.
+
+### Impact
+
+Invalid transcript data can enter the system and be rendered by downstream UI flows, reducing data quality and making transcript behavior less predictable.
+
 ## Candidate Issue Reviewed But Not Reproduced
 
 ### Preferred language not displayed in customer profile
 
 - This was checked against account `10012`.
 - The current build renders `preferred-language` as `French`, so it is not included as a confirmed defect.
+
+### Transaction sign semantics
+- Observed as potentially confusing in some cases, but not confirmed as a defect.
+
+### Long text truncation
+- Observed as a possible UI issue during exploratory testing, but not confirmed as a defect.

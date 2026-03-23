@@ -20,6 +20,9 @@ npx playwright install
 # Run all tests (headless)
 npm test
 
+# Run all tests explicitly
+npm run test:all
+
 # Run only the v1 bug verification
 npm run test:v1
 
@@ -69,9 +72,10 @@ The following features were tested:
 - Most core flows function correctly
 - Eight test suites were executed against the mock agent desktop
 - All core flows, including API run creation, agent status handling, chat invite acceptance, interaction/profile validation, transcript verification, and live chat, passed successfully
-- Two confirmed defects were identified on `/desktop`:
+- Three confirmed defects were identified on `/desktop`:
   - Message count badge caps at 35 messages (fixed in `/desktopv2`)
   - Chat transcript is rendered in non-chronological order
+  - API accepts malformed transcript timestamps instead of rejecting them
 
 Overall, the desktop supports the basic agent workflow, with identified issues in transcript ordering and message count accuracy.
 
@@ -82,6 +86,7 @@ Overall, the desktop supports the basic agent workflow, with identified issues i
 - Returned `desktopUrl` matches the created run
 - Different payloads produce unique `runId` values
 - Rejects transcript messages longer than 1000 characters
+- Exposes malformed transcript timestamps as a known validation defect
 
 ### 2. Desktop — Agent Status & Chat Invite Flow
 - Desktop loads with correct header and "Connected" status

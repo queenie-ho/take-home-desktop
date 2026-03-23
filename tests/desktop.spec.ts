@@ -75,6 +75,49 @@ test.describe("API: Test Run Creation", () => {
       error: "VALIDATION_ERROR",
     });
   });
+
+  test.fail("POST /api/testrun rejects malformed transcript timestamps", async ({
+    request,
+  }) => {
+    const response = await request.post(`${API_BASE_URL}/api/testrun`, {
+      data: buildPayloadWithTranscript([
+        {
+          sender: "Customer",
+          timestamp: "99:99:99",
+          message: "bad timestamp",
+        },
+      ]),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "VALIDATION_ERROR",
+    });
+  });
+
+  test("POST /api/testrun rejects unsupported transcript senders", async ({
+    request,
+  }) => {
+    const response = await request.post(`${API_BASE_URL}/api/testrun`, {
+      data: {
+        interactionInformation: SAMPLE_PAYLOAD.interactionInformation,
+        chatTranscript: [
+          {
+            sender: "Agent",
+            timestamp: "14:10:00",
+            message: "unsupported sender",
+          },
+        ],
+      },
+      headers: { "Content-Type": "application/json" },
+    });
+
+    expect(response.status()).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      error: "VALIDATION_ERROR",
+    });
+  });
 });
 
 test.describe("Desktop: Agent Status & Chat Invite Flow", () => {
@@ -251,8 +294,30 @@ test.describe("Desktop: Customer Profile", () => {
     await expect(
       page.locator('[data-testid="recent-transactions-pagination"]')
     ).toContainText("Page 1 of 3");
+    await expect(page.getByRole("button", { name: "Previous" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Next" })).toBeEnabled();
 
     await page.getByRole("button", { name: "Next" }).click();
+
+    await expect(
+      page.locator('[data-testid="recent-transactions-pagination"]')
+    ).toContainText("Page 2 of 3");
+    await expect(
+      page.locator('[data-testid="transaction-row-10"]')
+    ).toHaveText("2026-02-28Loyalty Credit-18.00");
+
+    await page.getByRole("button", { name: "Next" }).click();
+
+    await expect(
+      page.locator('[data-testid="recent-transactions-pagination"]')
+    ).toContainText("Page 3 of 3");
+    await expect(page.getByRole("button", { name: "Previous" })).toBeEnabled();
+    await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
+    await expect(
+      page.locator('[data-testid="transaction-row-20"]')
+    ).toHaveText("2026-02-18AutoPay Debit-91.50");
+
+    await page.getByRole("button", { name: "Previous" }).click();
 
     await expect(
       page.locator('[data-testid="recent-transactions-pagination"]')
@@ -442,13 +507,18 @@ test.describe("Desktop: Unauthenticated Flow", () => {
     await setupAndAcceptChat(page, UNAUTH_PAYLOAD, "v1");
     await page.locator('[data-testid="tab-customer-profile"]').click();
 
-    const profilePanel = page.locator('[data-testid="customer-profile"]');
-    const profileVisible = await profilePanel.isVisible().catch(() => false);
-
-    if (profileVisible) {
-      const text = await profilePanel.textContent();
-      expect(text).toBeTruthy();
-    }
+    await expect(
+      page.locator('[data-testid="customer-profile"]')
+    ).toBeVisible();
+    await expect(
+      page.locator('[data-testid="customer-profile-unavailable"]')
+    ).toHaveText("Customer profile unavailable until authenticated");
+    await expect(
+      page.locator('[data-testid="customer-name"]')
+    ).toHaveCount(0);
+    await expect(
+      page.locator('[data-testid="recent-transactions"]')
+    ).toHaveCount(0);
   });
 });
 
